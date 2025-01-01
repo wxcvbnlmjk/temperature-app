@@ -73,9 +73,6 @@ function App(): React.ReactElement {
           .map(row => {
             const [NUM_POSTE,NOM_USUEL,LAT,LON,ALTI,AAAAMMJJ,RR,QRR,TN,QTN,HTN,QHTN,TX,QTX,HTX,QHTX,TM,QTM,TNTXM,QTNTXM,TAMPLI,QTAMPLI,TNSOL,QTNSOL,TN50,QTN50,DG,QDG,FFM,QFFM,FF2M,QFF2M,FXY,QFXY,DXY,QDXY,HXY,QHXY,FXI,QFXI,DXI,QDXI,HXI,QHXI,FXI2,QFXI2,DXI2,QDXI2,HXI2,QHXI2,FXI3S,QFXI3S,DXI3S,QDXI3S,HXI3S,QHXI3S,DRR,QDRR] = row.split(';');
             // Vérifier si les données nécessaires sont présentes
-            if (!AAAAMMJJ || !NOM_USUEL || !TM) {
-              return null;
-            }
             return {
               ville:NOM_USUEL,
               date: formatDate(AAAAMMJJ),
@@ -89,7 +86,7 @@ function App(): React.ReactElement {
         console.log(parsedData);
         setData(parsedData);
         const uniqueVilles = Array.from(new Set(parsedData.map(item => item.ville)))
-          .sort((a, b) => a.localeCompare(b, 'fr')); // Tri alphabétique avec prise en compte des accents
+        .sort((a, b) => a.localeCompare(b, 'fr')); // Tri alphabétique avec priseen compte des accents
         setVilles(uniqueVilles);
         setSelectedVille(uniqueVilles[0]);
       });

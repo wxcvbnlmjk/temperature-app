@@ -88,7 +88,8 @@ function App(): React.ReactElement {
 
         console.log(parsedData);
         setData(parsedData);
-        const uniqueVilles = Array.from(new Set(parsedData.map(item => item.ville)));
+        const uniqueVilles = Array.from(new Set(parsedData.map(item => item.ville)))
+          .sort((a, b) => a.localeCompare(b, 'fr')); // Tri alphabétique avec prise en compte des accents
         setVilles(uniqueVilles);
         setSelectedVille(uniqueVilles[0]);
       });

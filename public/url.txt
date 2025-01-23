@@ -1,0 +1,1 @@
+https://my.meteoblue.com/packages/basic-1h_basic-day?apikey=DSIfC2r83Ph0v6Em&lat=45.1659&lon=4.80289&asl=273&format=json

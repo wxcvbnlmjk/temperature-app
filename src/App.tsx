@@ -53,25 +53,25 @@ const chartConfig = {
 
 interface MeteoData {
   metadata: {
-    latitude: number;
-    longitude: number;
+    latitude      : number;
+    longitude     : number;
   };
   units: {
-    temperature: string;
+    temperature   : string;
   };
   data_1h: {
-    time: string[];
-    temperature: number[];
-    precipitation: number[];
-    windspeed: number[];
+    time          : string[];
+    temperature   : number[];
+    precipitation : number[];
+    windspeed     : number[];
   }
 }
 
 interface FilteredTemp {
-  temperature: number;
-  precipitation: number;
-  windspeed: number;
-  date: string;
+  temperature   : number;
+  precipitation : number;
+  windspeed     : number;
+  date          : string;
 }
 
 function App() {
@@ -87,11 +87,12 @@ function App() {
 
     fetch(jsonUrl, {
       headers: {
-        'Accept': 'application/json',
-        'Cache-Control': 'no-cache'
+        'Accept'        : 'application/json',
+        'Cache-Control' : 'no-cache'
       }
     })
       .then(response => {
+
         // console.log('Status de la réponse:', response.status);
         // console.log('Headers de la réponse:', Object.fromEntries(response.headers.entries()));
 
@@ -117,6 +118,7 @@ function App() {
         });
       })
       .then((jsonData: MeteoData) => {
+
         // console.log('Données météo chargées:', jsonData);
         
         if (!jsonData || typeof jsonData !== 'object') {
@@ -170,9 +172,9 @@ function App() {
 
     const filtered = data.data_1h.time.map((time, index) => {
       return {
-        temperature   : data.data_1h.temperature[index],
-        precipitation : data.data_1h.precipitation[index],
-        windspeed     : data.data_1h.windspeed[index]*3.6,
+        temperature   : Math.round(data.data_1h.temperature[index]*10)/10,
+        precipitation : Math.round(data.data_1h.precipitation[index]),
+        windspeed     : Math.round(data.data_1h.windspeed[index]*36)/10,
         date          : time
       };
     }).filter(item => {
@@ -219,9 +221,9 @@ function App() {
                     >
                       <CalendarIcon />
                       {startDate ? startDate.toLocaleDateString("fr-FR", {
-                              weekday: "short",
-                              day: "numeric",
-                              month: "short",
+                              weekday : "short",
+                              day     : "numeric",
+                              month   : "short",
                             }).replace(',',' '): <span></span>}
                     </Button>
                   </PopoverTrigger>
@@ -247,9 +249,9 @@ function App() {
                     >
                       <CalendarIcon />
                       {endDate ? endDate.toLocaleDateString("fr-FR", {
-                              weekday: "short",
-                              day: "numeric",
-                              month: "short",
+                              weekday : "short",
+                              day     : "numeric",
+                              month   : "short",
                             }).replace(',',' '): <span></span>}
                     </Button>
                   </PopoverTrigger>
@@ -323,11 +325,11 @@ function App() {
                           tickFormatter={(value) => {
                             const date = new Date(value);
                             return date.toLocaleDateString("fr-FR", {
-                              weekday: "short",
-                              day: "numeric",
-                              month: "short",
-                              hour: "numeric",
-                              minute: "numeric"
+                              weekday : "short",
+                              day     : "numeric",
+                              month   : "short",
+                              hour    : "numeric",
+                              minute  : "numeric"
                             }).replace(',',' ');
                           }}
                         />
@@ -348,6 +350,7 @@ function App() {
                           type="monotone"
                           fill="url(#fillTemperature)"
                           stroke="var(--color-temperature)"
+                          strokeWidth={2}
                           yAxisId="temperature"
                         />
                         <Area
@@ -355,6 +358,7 @@ function App() {
                           type="monotone"
                           fill="url(#fillWindspeed)"
                           stroke="var(--color-windspeed)"
+                          strokeWidth={3}
                           yAxisId="windspeed"
                           unit="km/h"
                         />
@@ -363,6 +367,7 @@ function App() {
                           type="monotone"
                           fill="url(#fillPrecipitation)"
                           stroke="var(--color-precipitation)"
+                          strokeWidth={2}
                           yAxisId="temperature"
                           unit="mm"
                         />
@@ -372,11 +377,11 @@ function App() {
                               labelFormatter={(value: string) => {
                                 const date = new Date(value)
                                 return date.toLocaleDateString("fr-FR", {
-                                  weekday: 'short',
-                                  month: "short",
-                                  day: "numeric",
-                                  hour: "numeric",
-                                  minute: "numeric"
+                                  weekday : 'short',
+                                  month   : "short",
+                                  day     : "numeric",
+                                  hour    : "numeric",
+                                  minute  : "numeric"
                                 }).replace(',',' ');
                               }}
                             />
@@ -388,7 +393,7 @@ function App() {
                   </div>
                 )}
               </CardContent>
-            </Card>s
+            </Card>
           </div>
         </div>
       </div>

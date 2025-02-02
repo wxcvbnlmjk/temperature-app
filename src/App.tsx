@@ -67,6 +67,11 @@ interface MeteoData {
     cloud_cover	    : number[];
     wind_gusts_10m	: number[];
     snowfall        : number[];
+  },
+  daily: {
+    sunrise         : string[];
+    sunset          : string[];
+    time            : string[];
   }
 }
 
@@ -78,24 +83,61 @@ interface FilteredTemp {
   gust          : number;
   snowfall      : number;
   date          : string;
+  sunrises      : string[];
+  sunsets       : string[];
+  jours         : string[];  
 }
 
 interface Location {
   lat: string;
   lon: string;
   display_name: string;
+  elevation?: number;
+}
+
+const getHourSunrise = (data: FilteredTemp) => {
+  const dataDate = new Date(data.date);
+  const index = data.jours.findIndex(day => new Date(day).toDateString() === dataDate.toDateString());
+  if (index !== -1) {
+    const sunriseDate = new Date(data.sunrises[index]);
+    return sunriseDate.getHours() + "h" + sunriseDate.getMinutes();
+  }
+  return "";
+}
+
+const getHourSunset = (data: FilteredTemp) => {
+  const dataDate = new Date(data.date);
+  const index = data.jours.findIndex(day => new Date(day).toDateString() === dataDate.toDateString());
+  if (index !== -1) {
+    const sunsetDate = new Date(data.sunsets[index]);
+    return sunsetDate.getHours() + "h" + sunsetDate.getMinutes();
+  }
+  return "";
 }
 
 // Créer une fonction utilitaire pour obtenir l'icône météo
 const getWeatherIcon = (data: FilteredTemp) => {
-
+  // Priorité aux conditions de neige et de pluie
   if (data.snowfall > 0) return '/weather/wi-snow.svg';
   if (data.precipitation > 0) return '/weather/wi-rain.svg';
   
-  const date = new Date(data.date);
-  const hour = date.getHours();
+  const dataDate = new Date(data.date);
+  let isDay: boolean;
+  const hour = dataDate.getHours();
+  isDay = hour >= 6 && hour < 21;
+
+  // Utilisation des informations daily contenues dans FilteredTemp
+  if (data.jours && data.sunrises && data.sunsets && data.jours.length > 0) {
+    const index = data.jours.findIndex(day => new Date(day).toDateString() === dataDate.toDateString());
+    if (index !== -1) {
+      const sunriseDate = new Date(data.sunrises[index]);
+      const sunsetDate = new Date(data.sunsets[index]);
+      // Vérifier si la date se situe entre le lever et le coucher du soleil
+      isDay = dataDate.getTime() >= sunriseDate.getTime() && dataDate.getTime() < sunsetDate.getTime();
+    }  
+  }  
   
-  if (hour >= 6 && hour < 21) {
+  if (isDay) {
     if (data.cloud < 10) return '/weather/wi-day-sunny.svg';
     if (data.cloud < 70) return '/weather/wi-day-cloudy.svg';
     return '/weather/wi-cloudy.svg';
@@ -127,36 +169,43 @@ const CustomTooltip = ({ active, payload, label }: any) => {
           minute: "numeric"
         }).replace(',', ' ')}</p>
         
-        <div style={{ display: 'flex', justifyContent: 'center', margin: '10px 0' }}>
-          <img 
-            src={getWeatherIcon(data)}
-            style={{
-              width: '32px',
-              height: 'auto',
-              filter: 'invert(1)'
-            }}
-            alt="Weather Icon"
-          />
+        <div id="div1" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+ 
+            <img 
+              src={getWeatherIcon(data)}
+              style={{
+                width: '32px',
+                height: 'auto',
+                filter: 'invert(1)',
+              }}
+              alt="Weather Icon"
+            />
+ 
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '20px 1fr 60px', gap: '5px', alignItems: 'center' }}>
-          <div style={{ width: '12px', height: '12px', backgroundColor: chartConfig.temperature.color, borderRadius: '30%' }}></div>
+
+          <div style={{ width: '12px', height: '10px', backgroundColor: '#000000', borderRadius: '30%' }}></div>
+          <span style={{ textAlign: 'left' }}>{getHourSunrise(data)}</span>
+          <span style={{ textAlign: 'right' }}>{getHourSunset(data)}</span>
+
+          <div style={{ width: '12px', height: '10px', backgroundColor: chartConfig.temperature.color, borderRadius: '30%' }}></div>
           <span style={{ textAlign: 'left' }}>T°C:</span>
           <span style={{ textAlign: 'right' }}>{data.temperature}°C</span>
 
-          <div style={{ width: '12px', height: '12px', backgroundColor: chartConfig.windspeed.color, borderRadius: '30%' }}></div>
+          <div style={{ width: '12px', height: '10px', backgroundColor: chartConfig.windspeed.color, borderRadius: '30%' }}></div>
           <span style={{ textAlign: 'left' }}>Vent:</span>
           <span style={{ textAlign: 'right' }}>{data.windspeed} km/h</span>
 
-          <div style={{ width: '12px', height: '12px', backgroundColor: chartConfig.gust.color, borderRadius: '30%' }}></div>
+          <div style={{ width: '12px', height: '10px', backgroundColor: chartConfig.gust.color, borderRadius: '30%' }}></div>
           <span style={{ textAlign: 'left' }}>Rafales:</span>
           <span style={{ textAlign: 'right' }}>{data.gust} km/h</span>
 
-          <div style={{ width: '12px', height: '12px', backgroundColor: chartConfig.precipitation.color, borderRadius: '30%' }}></div>
+          <div style={{ width: '12px', height: '10px', backgroundColor: chartConfig.precipitation.color, borderRadius: '30%' }}></div>
           <span style={{ textAlign: 'left' }}>Pluie:</span>
           <span style={{ textAlign: 'right' }}>{data.precipitation} mm</span>
 
-          <div style={{ width: '12px', height: '12px', backgroundColor: chartConfig.snowfall.color, borderRadius: '30%' }}></div>
+          <div style={{ width: '12px', height: '10px', backgroundColor: chartConfig.snowfall.color, borderRadius: '30%' }}></div>
           <span style={{ textAlign: 'left' }}>Neige:</span>
           <span style={{ textAlign: 'right' }}>{data.snowfall}  cm</span>
         </div>
@@ -175,11 +224,13 @@ function App() {
   const [citySearch, setCitySearch] = useState<string>("");
   const [coordinates, setCoordinates] = useState({ latitude: "45.16", longitude: "4.80" });
   const [selectedCity, setSelectedCity] = useState<string>("");
+  const [altitude, setAltitude] = useState<number | null>(null);
 
   useEffect(() => {
     const jsonUrl = new URL("https://api.open-meteo.com/v1/forecast");
     jsonUrl.searchParams.append("latitude", coordinates.latitude);
     jsonUrl.searchParams.append("longitude", coordinates.longitude);
+    jsonUrl.searchParams.append("daily", "sunrise,sunset");
     jsonUrl.searchParams.append("hourly", "temperature_2m,snowfall,rain,cloud_cover,wind_speed_10m,wind_gusts_10m");
     jsonUrl.searchParams.append("timezone", "Europe/Paris");
     jsonUrl.searchParams.append("forecast_days", "7");
@@ -203,15 +254,22 @@ function App() {
         setError(null);
 
         const times = jsonData.hourly.time.map(time => new Date(time));
+        const minDate = new Date(Math.min(...times.map(date => date.getTime())));
+        const maxDate = new Date(Math.max(...times.map(date => date.getTime())));
         const today = new Date();
         const tomorrow = new Date(today);
         tomorrow.setDate(today.getDate() + 1);
-        
-        const minDate = new Date(Math.min(...times.map(date => date.getTime())));
-        const maxDate = new Date(Math.max(...times.map(date => date.getTime())));
 
-        setStartDate(times.some(date => date.toDateString() === today.toDateString()) ? today : minDate);
-        setEndDate(times.some(date => date.toDateString() === tomorrow.toDateString()) ? tomorrow : maxDate);
+        // Initialiser aux dates du jour/j+1 seulement si c'est le premier chargement
+        if (!startDate && !endDate) {
+          setStartDate(times.some(date => date.toDateString() === today.toDateString()) ? today : minDate);
+          setEndDate(times.some(date => date.toDateString() === tomorrow.toDateString()) ? tomorrow : maxDate);
+        }
+        // Sinon vérifier que les dates existantes sont dans la nouvelle plage
+        else {
+          setStartDate(prev => prev && prev >= minDate && prev <= maxDate ? prev : minDate);
+          setEndDate(prev => prev && prev >= minDate && prev <= maxDate ? prev : maxDate);
+        }
       })
       .catch(error => {
         setError(
@@ -237,7 +295,10 @@ function App() {
         windspeed     : Math.round(data.hourly.wind_speed_10m[index] * 10) / 10,
         gust          : Math.round(data.hourly.wind_gusts_10m[index] * 10) / 10,
         snowfall      : Math.round(data.hourly.snowfall[index] * 10) / 10,
-        date          : time
+        date          : time,
+        sunrises      : data.daily.sunrise,
+        sunsets       : data.daily.sunset,
+        jours         : data.daily.time
       };
     }).filter(item => {
       const itemDate = new Date(item.date);
@@ -264,11 +325,18 @@ function App() {
       const data = await response.json() as Location[];
       
       if (data.length > 0) {
+        // Récupérer l'altitude via l'API Open-Meteo
+        const elevationResponse = await fetch(
+          `https://api.open-meteo.com/v1/elevation?latitude=${data[0].lat}&longitude=${data[0].lon}`
+        );
+        const elevationData = await elevationResponse.json();
+        
         setCoordinates({
-          latitude  : data[0].lat,
-          longitude : data[0].lon
+          latitude: data[0].lat,
+          longitude: data[0].lon
         });
         setSelectedCity(data[0].display_name);
+        setAltitude(elevationData.elevation[0]);
         setError(null);
       } else {
         setError("Ville non trouvée");
@@ -330,7 +398,7 @@ function App() {
                     textAlign: "center",
                     marginTop: "5px"
                   }}>
-                    {selectedCity}
+                    {selectedCity} {altitude && `(Alt. ${Math.round(altitude)} m)`}
                   </CardDescription>
                 )}
                                 
@@ -360,6 +428,7 @@ function App() {
                       selected={startDate || new Date()}
                       onSelect={(date: Date | undefined) => setStartDate(date || null)}
                       initialFocus
+                      className="bg-black text-white [&_td]:text-white [&_th]:text-white"
                     />
                   </PopoverContent>
                 </Popover>
@@ -388,6 +457,7 @@ function App() {
                       selected={endDate || new Date()}
                       onSelect={(date: Date | undefined) => setEndDate(date || null)}
                       initialFocus
+                      className="bg-black text-white [&_td]:text-white [&_th]:text-white"
                     />
                   </PopoverContent>
                 </Popover>  

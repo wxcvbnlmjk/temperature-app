@@ -40,3 +40,26 @@
 .read-the-docs {
   color: #888;
 }
+
+.rdp {
+  --rdp-cell-size: 40px;
+  --rdp-accent-color: #0000ff;
+  --rdp-background-color: #e7edff;
+  --rdp-accent-color-dark: #000000;
+  --rdp-background-color-dark: #000000;
+  --rdp-outline: 2px solid var(--rdp-accent-color);
+  --rdp-outline-selected: 3px solid var(--rdp-accent-color);
+  margin: 1em;
+}
+
+.rdp-button  {
+  background-color: #000000;
+}
+
+.rdp-button:hover:not([disabled]) {
+  background-color: #333333;
+}
+
+.rdp-day_selected {
+  background-color: #2563eb !important;
+}

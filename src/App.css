@@ -54,6 +54,7 @@
 
 .rdp-button  {
   background-color: #000000;
+  color: #e7edff;  
 }
 
 .rdp-button:hover:not([disabled]) {

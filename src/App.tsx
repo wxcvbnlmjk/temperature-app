@@ -19,7 +19,7 @@ import {
 
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
-import { ThemeProvider } from "@/components/ui/theme-provider"
+import { ThemeProvider, useTheme } from "@/components/ui/theme-provider"
 
 import {
   Popover,
@@ -29,7 +29,7 @@ import {
 
 import { useEffect, useState } from 'react';
 import { cn } from "@/lib/utils"
-import { CalendarIcon, Search } from "lucide-react"
+import { CalendarIcon, Search, Moon, Sun } from "lucide-react"
 import "react-datepicker/dist/react-datepicker.css";
 import { fr } from 'date-fns/locale';
 import { Input } from "@/components/ui/input"
@@ -150,16 +150,20 @@ const getWeatherIcon = (data: FilteredTemp) => {
 
 // Composant personnalisé pour le tooltip
 const CustomTooltip = ({ active, payload, label }: any) => {
+  const { theme } = useTheme();
+
   if (active && payload && payload.length) {
     const data = payload[0].payload as FilteredTemp;
     const date = new Date(label);
     
     return (
       <div className="custom-tooltip" style={{ 
-        backgroundColor: 'rgba(0, 0, 0, 0.8)', 
+        backgroundColor: theme === "dark" ? "#000000" : "#FFFFFF",
+        color: theme === "dark" ? "#FFFFFF" : "#000000",
         padding: '10px', 
         border: '1px solid #ccc',
-        transform: 'translateY(-200px)'
+        transform: 'translateY(-200px)',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
       }}>
         <p style={{ textAlign: 'center' }}>{date.toLocaleDateString("fr-FR", {
           weekday: 'short',
@@ -176,7 +180,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
               style={{
                 width: '32px',
                 height: 'auto',
-                filter: 'invert(1)',
+                filter: theme === "dark" ? 'invert(1)' : 'invert(0)',
               }}
               alt="Weather Icon"
             />
@@ -185,7 +189,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 
         <div style={{ display: 'grid', gridTemplateColumns: '20px 1fr 60px', gap: '5px', alignItems: 'center' }}>
 
-          <div style={{ width: '12px', height: '10px', backgroundColor: '#000000', borderRadius: '30%' }}></div>
+          <div style={{ width: '12px', height: '10px',  borderRadius: '30%' }}></div>
           <span style={{ textAlign: 'left' }}>{getHourSunrise(data)}</span>
           <span style={{ textAlign: 'right' }}>{getHourSunset(data)}</span>
 
@@ -215,7 +219,9 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   return null;
 };
 
-function App() {
+// Créer un nouveau composant pour le contenu de l'app
+function AppContent() {
+  const { theme, setTheme } = useTheme()
   const [data, setData] = useState<MeteoData | null>(null);
   const [filteredData, setFilteredData] = useState<FilteredTemp[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -225,7 +231,6 @@ function App() {
   const [coordinates, setCoordinates] = useState({ latitude: "45.16", longitude: "4.80" });
   const [selectedCity, setSelectedCity] = useState<string>("");
   const [altitude, setAltitude] = useState<number | null>(null);
-
   useEffect(() => {
     const jsonUrl = new URL("https://api.open-meteo.com/v1/forecast");
     jsonUrl.searchParams.append("latitude", coordinates.latitude);
@@ -252,7 +257,6 @@ function App() {
 
         setData(jsonData);
         setError(null);
-
         const times = jsonData.hourly.time.map(time => new Date(time));
         const minDate = new Date(Math.min(...times.map(date => date.getTime())));
         const maxDate = new Date(Math.max(...times.map(date => date.getTime())));
@@ -351,324 +355,348 @@ function App() {
   // console.log("cloud         : " + filteredData[0].cloud);
 
   return (
-    <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
-      <div className="container mt-4">
-        <div style={{display:"flex",justifyContent:"center",alignItems:"center"}}>
-          <div className="col-12">
-            <Card style={{width:"80vw",margin:"0 auto",marginTop:"-100px"}}>
-              <CardHeader>
-                <CardTitle>Météo</CardTitle>
-
-                {error ? (
-                  <CardDescription style={{color: 'red', textAlign: 'center'}}>
-                    {error}
-                  </CardDescription>
-                ) : (
-                  <CardDescription style={{display:"flex",justifyContent:"center",alignItems:"center"}}>
-                    {data && (
-                      <>
-                        Évolution de la température - vitesse du vent - précipitation
-                      </>
-                    )}
-                  </CardDescription>
-                )}
-
-                <div style={{
-                  display: "flex",
-                  gap: "10px",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  marginTop: "10px"
-                }}>
-                  <Input
-                    type="text"
-                    placeholder="Rechercher une ville..."
-                    value={citySearch}
-                    onChange={(e) => setCitySearch(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && searchCity()}
-                    style={{ maxWidth: "250px" }}
-                  />
-                  <Button onClick={searchCity} variant="outline" size="icon">
-                    <Search className="h-4 w-4" />
-                  </Button>
-                </div>
-                
-                {selectedCity && (
-                  <CardDescription style={{
-                    textAlign: "center",
-                    marginTop: "5px"
-                  }}>
-                    {selectedCity} {altitude && `(Alt. ${Math.round(altitude)} m)`}
-                  </CardDescription>
-                )}
-                                
-                <div style={{display:"flex",justifyContent:"center",alignItems:"center"}}>
-
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant={"outline"}
-                      className={cn(
-                        "w-[150px] justify-start text-left font-normal",
-                        !startDate && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon />
-                      {startDate ? startDate.toLocaleDateString("fr-FR", {
-                              weekday : "short",
-                              day     : "numeric",
-                              month   : "short",
-                            }).replace(',',' '): <span></span>}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      locale={fr}
-                      selected={startDate || new Date()}
-                      onSelect={(date: Date | undefined) => setStartDate(date || null)}
-                      initialFocus
-                      className="bg-black text-white [&_td]:text-white [&_th]:text-white"
-                    />
-                  </PopoverContent>
-                </Popover>
-
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant={"outline"}
-                      className={cn(
-                        "w-[150px] justify-start text-left font-normal",
-                        !endDate && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon />
-                      {endDate ? endDate.toLocaleDateString("fr-FR", {
-                              weekday : "short",
-                              day     : "numeric",
-                              month   : "short",
-                            }).replace(',',' '): <span></span>}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      locale={fr}
-                      selected={endDate || new Date()}
-                      onSelect={(date: Date | undefined) => setEndDate(date || null)}
-                      initialFocus
-                      className="bg-black text-white [&_td]:text-white [&_th]:text-white"
-                    />
-                  </PopoverContent>
-                </Popover>  
-
-                </div>
-
-              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'relative', top: 0, right: 0, fontSize: '48px' }}>
-                <table>
-                  <tbody>
-                    <tr>
-                      <td>
-                        <img 
-                          src={ filteredData.length > 0
-                            ? getWeatherIcon(filteredData[0])
-                            : '/weather/wi-cloudy.svg'
-                          }
-                          style={{
-                            width: '128px',
-                            height: 'auto',
-                            filter: 'invert(1)'
-                          }} 
-                          alt="Weather Icon"
-                        />
-                      </td>
-                    </tr>
-                    <tr>
-                      <td>
-                        <h2 
-                          className="text-5xl" 
-                          style={{
-                            marginTop: "-10px",
-                            textShadow: `
-                              -1px -1px 0 #fff,  
-                               1px -1px 0 #fff,
-                              -1px  1px 0 #fff,
-                               1px  1px 0 #fff,
-                              1px 1px 1px rgba(0,0,0,0.3)
-                            `
-                          }}
-                        >
-                          {filteredData.length > 0 && `${filteredData[0].temperature}°C`}
-                        </h2>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
+    <div className="container mt-4">
+      <div style={{display:"flex",justifyContent:"center",alignItems:"center"}}>
+        <div className="col-12">
+          <Card style={{width:"80vw",margin:"0 auto",marginTop:"-100px"}}>
+            <CardHeader>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <CardTitle></CardTitle>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setTheme(theme === "light" ? "dark" : "light")}
+                >
+                  {theme === "light" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+                </Button>
               </div>
-               
-              </CardHeader>
 
-              <CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
+              {error ? (
+                <CardDescription style={{color: 'red', textAlign: 'center'}}>
+                  {error}
+                </CardDescription>
+              ) : (
+                <CardDescription style={{display:"flex",justifyContent:"center",alignItems:"center"}}>
+                  {data && (
+                    <>
+                      Évolution de la température - vitesse du vent - précipitation
+                    </>
+                  )}
+                </CardDescription>
+              )}
 
-                {!error && (
-                  <div className="h-[250px]" >
-                    <ChartContainer
-                      config={chartConfig}
-                      className="aspect-auto h-[200px] w-full"
-                    >
+              <div style={{
+                display: "flex",
+                gap: "10px",
+                alignItems: "center",
+                justifyContent: "center",
+                marginTop: "10px"
+              }}>
+                <Input
+                  type="text"
+                  placeholder="Rechercher une ville..."
+                  value={citySearch}
+                  onChange={(e) => setCitySearch(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && searchCity()}
+                  style={{ maxWidth: "250px" }}
+                />
+                <Button onClick={searchCity} variant="outline" size="icon">
+                  <Search className="h-4 w-4" />
+                </Button>
+              </div>
+              
+              {selectedCity && (
+                <CardDescription style={{
+                  textAlign: "center",
+                  marginTop: "5px"
+                }}>
+                  {selectedCity} {altitude && `(Alt. ${Math.round(altitude)} m)`}
+                </CardDescription>
+              )}
+                              
+              <div style={{display:"flex",justifyContent:"center",alignItems:"center"}}>
 
-                      <ComposedChart data={filteredData} height={350}>
-                        <defs>
-                          <linearGradient id="fillTemperature" x1="0" y1="0" x2="0" y2="1">
-                            <stop
-                              offset="1%"
-                              stopColor="var(--color-temperature)"
-                              stopOpacity={1}
-                            />
-                            <stop
-                              offset="100%"
-                              stopColor="var(--color-temperature)"
-                              stopOpacity={0.1}
-                            />
-                          </linearGradient>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant={"outline"}
+                    className={cn(
+                      "w-[150px] justify-start text-left font-normal",
+                      !startDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon />
+                    {startDate ? startDate.toLocaleDateString("fr-FR", {
+                            weekday : "short",
+                            day     : "numeric",
+                            month   : "short",
+                          }).replace(',',' '): <span></span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    locale={fr}
+                    selected={startDate || new Date()}
+                    onSelect={(date: Date | undefined) => setStartDate(date || null)}
+                    initialFocus
+                    className={cn(
+                      theme === "dark" 
+                      ? "bg-black text-white [&_td]:text-white [&_th]:text-white [&_.rdp-day_selected]:bg-black [&_.rdp-day_selected]:text-black [&_.rdp-button]:bg-black [&_.rdp-button]:text-white [&_.rdp-button:hover]:bg-gray-800 [&_.rdp-day_today]:bg-gray-800  [&_.rdp-day_today]:text-white" 
+                      : "bg-white text-black [&_td]:text-black [&_th]:text-black [&_.rdp-day_selected]:bg-gray-100 [&_.rdp-day_selected]:text-black [&_.rdp-button]:bg-white [&_.rdp-button]:text-black [&_.rdp-button:hover]:bg-gray-100 [&_.rdp-day_today]:bg-gray-100 [&_.rdp-day_today]:text-black"
+                    )}
+                  />
+                </PopoverContent>
+              </Popover>
 
-                          <linearGradient id="fillPrecipitation" x1="0" y1="0" x2="0" y2="1">
-                            <stop
-                              offset="1%"
-                              stopColor="var(--color-precipitation)"
-                              stopOpacity={1}
-                            />
-                            <stop
-                              offset="100%"
-                              stopColor="var(--color-precipitation)"
-                              stopOpacity={0.1}
-                            />
-                          </linearGradient>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant={"outline"}
+                    className={cn(
+                      "w-[150px] justify-start text-left font-normal",
+                      !endDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon />
+                    {endDate ? endDate.toLocaleDateString("fr-FR", {
+                            weekday : "short",
+                            day     : "numeric",
+                            month   : "short",
+                          }).replace(',',' '): <span></span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    locale={fr}
+                    selected={endDate || new Date()}
+                    onSelect={(date: Date | undefined) => setEndDate(date || null)}
+                    initialFocus
+                    className={cn(
+                      theme === "dark" 
+                      ? "bg-black text-white [&_td]:text-white [&_th]:text-white [&_.rdp-day_selected]:bg-black [&_.rdp-day_selected]:text-black [&_.rdp-button]:bg-black [&_.rdp-button]:text-white [&_.rdp-button:hover]:bg-gray-800 [&_.rdp-day_today]:bg-gray-800  [&_.rdp-day_today]:text-white" 
+                      : "bg-white text-black [&_td]:text-black [&_th]:text-black [&_.rdp-day_selected]:bg-gray-100 [&_.rdp-day_selected]:text-black [&_.rdp-button]:bg-white [&_.rdp-button]:text-black [&_.rdp-button:hover]:bg-gray-100 [&_.rdp-day_today]:bg-gray-100 [&_.rdp-day_today]:text-black"
+                    )}
+                  />
+                </PopoverContent>
+              </Popover>  
 
-                          <linearGradient id="fillWindspeed" x1="0" y1="0" x2="0" y2="1">
-                            <stop
-                              offset="1%"
-                              stopColor="var(--color-windspeed)"
-                              stopOpacity={0.2}
-                            />
-                            <stop
-                              offset="2%"
-                              stopColor="var(--color-windspeed)"
-                              stopOpacity={0.1}
-                            />
-                          </linearGradient>
-                          <linearGradient id="fillGust" x1="0" y1="0" x2="0" y2="1">
-                            <stop
-                              offset="1%"
-                              stopColor="var(--color-gust)"
-                              stopOpacity={0.2}
-                            />
-                            <stop
-                              offset="2%"
-                              stopColor="var(--color-gust)"
-                              stopOpacity={0.1}
-                            />
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid vertical={false} />
-                        <XAxis
-                          dataKey="date"
-                          tickLine={false}
-                          axisLine={false}
-                          tickMargin={8}
-                          minTickGap={32}
-                          tickFormatter={(value) => {
-                            const date = new Date(value);
-                            return date.toLocaleDateString("fr-FR", {
-                              weekday: "short",
-                              day: "numeric",
-                              month: "short",
-                              hour: "numeric",
-                              minute: "numeric"
-                            }).replace(',', ' ');
-                          }}
-                        />
-                        <YAxis
-                          yAxisId="temperature"
-                          orientation="left"
-                          tickFormatter={(value) => `${value}°C`}
-                          stroke="var(--color-temperature)"
-                        />
-                        <YAxis
-                          yAxisId="windspeed"
-                          orientation="right"
-                          tickFormatter={(value) => `${value} km/h`}
-                          stroke="var(--color-windspeed)"
-                        />
-                        <YAxis
-                          yAxisId="precipitation"
-                          orientation="right"
-                          tickFormatter={(value) => `${value} mm`}
-                          stroke="var(--color-precipitation)"
-                          hide={true}
-                        />
-                        <YAxis
-                          yAxisId="snowfall"
-                          orientation="right"
-                          tickFormatter={(value) => `${value} mm`}
-                          stroke="var(--color-snowfall)"
-                          hide={true}
-                        />
-                        <Area
-                          dataKey="temperature"
-                          type="monotone"
-                          fill="url(#fillTemperature)"
-                          stroke="var(--color-temperature)"
-                          strokeWidth={2}
-                          yAxisId="temperature"
-                        />
-                        <Area
-                          dataKey="gust"
-                          type="monotone"
-                          fill="url(#fillGust)"
-                          stroke="var(--color-gust)"
-                          strokeWidth={3}
-                          yAxisId="windspeed"
-                          unit="km/h"
-                        />
-                        <Area
-                          dataKey="windspeed"
-                          type="monotone"
-                          fill="url(#fillWindspeed)"
-                          stroke="var(--color-windspeed)"
-                          strokeWidth={3}
-                          yAxisId="windspeed"
-                          unit="km/h"
-                        />
-                        <Bar
-                          dataKey="precipitation"
-                          fill="var(--color-precipitation)"
-                          yAxisId="precipitation"
-                          unit="mm"
-                          stroke="var(--color-precipitation)"
-                          strokeWidth={3}
-                          radius={2}
-                        />
-                        <Bar
-                          dataKey="snowfall"
-                          fill="var(--color-snowfall)"
-                          yAxisId="snowfall"
-                          unit="cm"
-                          stroke="var(--color-snowfall)"
-                          strokeWidth={3}
-                          radius={2}
-                        />
-                        <ChartTooltip content={<CustomTooltip />} />
-                        <ChartLegend content={<ChartLegendContent />} />
-                      </ComposedChart>
-                    </ChartContainer>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+              </div>
+
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'relative', top: 0, right: 0, fontSize: '48px' }}>
+              <table>
+                <tbody>
+                  <tr>
+                    <td>
+                      <img 
+                        src={ filteredData.length > 0
+                          ? getWeatherIcon(filteredData[0])
+                          : '/weather/wi-cloudy.svg'
+                        }
+                        style={{
+                          width: '128px',
+                          height: 'auto',
+                          filter: theme === "dark" ? 'invert(1)' : 'invert(0)'
+                        }} 
+                        alt="Weather Icon"
+                      />
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <h2 
+                        className="text-5xl" 
+                        style={{
+                          marginTop: "-10px",
+                          textShadow: `
+                            -1px -1px 0 #fff,  
+                             1px -1px 0 #fff,
+                            -1px  1px 0 #fff,
+                             1px  1px 0 #fff,
+                            1px 1px 1px rgba(0,0,0,0.3)
+                          `
+                        }}
+                      >
+                        {filteredData.length > 0 && `${filteredData[0].temperature}°C`}
+                      </h2>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+             
+            </CardHeader>
+
+            <CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
+
+              {!error && (
+                <div className="h-[250px]" >
+                  <ChartContainer
+                    config={chartConfig}
+                    className="aspect-auto h-[200px] w-full"
+                  >
+
+                    <ComposedChart data={filteredData} height={350}>
+                      <defs>
+                        <linearGradient id="fillTemperature" x1="0" y1="0" x2="0" y2="1">
+                          <stop
+                            offset="1%"
+                            stopColor="var(--color-temperature)"
+                            stopOpacity={1}
+                          />
+                          <stop
+                            offset="100%"
+                            stopColor="var(--color-temperature)"
+                            stopOpacity={0.1}
+                          />
+                        </linearGradient>
+
+                        <linearGradient id="fillPrecipitation" x1="0" y1="0" x2="0" y2="1">
+                          <stop
+                            offset="1%"
+                            stopColor="var(--color-precipitation)"
+                            stopOpacity={1}
+                          />
+                          <stop
+                            offset="100%"
+                            stopColor="var(--color-precipitation)"
+                            stopOpacity={0.1}
+                          />
+                        </linearGradient>
+
+                        <linearGradient id="fillWindspeed" x1="0" y1="0" x2="0" y2="1">
+                          <stop
+                            offset="1%"
+                            stopColor="var(--color-windspeed)"
+                            stopOpacity={0.2}
+                          />
+                          <stop
+                            offset="2%"
+                            stopColor="var(--color-windspeed)"
+                            stopOpacity={0.1}
+                          />
+                        </linearGradient>
+                        <linearGradient id="fillGust" x1="0" y1="0" x2="0" y2="1">
+                          <stop
+                            offset="1%"
+                            stopColor="var(--color-gust)"
+                            stopOpacity={0.2}
+                          />
+                          <stop
+                            offset="2%"
+                            stopColor="var(--color-gust)"
+                            stopOpacity={0.1}
+                          />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid vertical={false} />
+                      <XAxis
+                        dataKey="date"
+                        tickLine={false}
+                        axisLine={false}
+                        tickMargin={8}
+                        minTickGap={32}
+                        tickFormatter={(value) => {
+                          const date = new Date(value);
+                          return date.toLocaleDateString("fr-FR", {
+                            weekday: "short",
+                            day: "numeric",
+                            month: "short",
+                            hour: "numeric",
+                            minute: "numeric"
+                          }).replace(',', ' ');
+                        }}
+                      />
+                      <YAxis
+                        yAxisId="temperature"
+                        orientation="left"
+                        tickFormatter={(value) => `${value}°C`}
+                        stroke="var(--color-temperature)"
+                      />
+                      <YAxis
+                        yAxisId="windspeed"
+                        orientation="right"
+                        tickFormatter={(value) => `${value} km/h`}
+                        stroke="var(--color-windspeed)"
+                      />
+                      <YAxis
+                        yAxisId="precipitation"
+                        orientation="right"
+                        tickFormatter={(value) => `${value} mm`}
+                        stroke="var(--color-precipitation)"
+                        hide={true}
+                      />
+                      <YAxis
+                        yAxisId="snowfall"
+                        orientation="right"
+                        tickFormatter={(value) => `${value} mm`}
+                        stroke="var(--color-snowfall)"
+                        hide={true}
+                      />
+                      <Area
+                        dataKey="temperature"
+                        type="monotone"
+                        fill="url(#fillTemperature)"
+                        stroke="var(--color-temperature)"
+                        strokeWidth={2}
+                        yAxisId="temperature"
+                      />
+                      <Area
+                        dataKey="gust"
+                        type="monotone"
+                        fill="url(#fillGust)"
+                        stroke="var(--color-gust)"
+                        strokeWidth={3}
+                        yAxisId="windspeed"
+                        unit="km/h"
+                      />
+                      <Area
+                        dataKey="windspeed"
+                        type="monotone"
+                        fill="url(#fillWindspeed)"
+                        stroke="var(--color-windspeed)"
+                        strokeWidth={3}
+                        yAxisId="windspeed"
+                        unit="km/h"
+                      />
+                      <Bar
+                        dataKey="precipitation"
+                        fill="var(--color-precipitation)"
+                        yAxisId="precipitation"
+                        unit="mm"
+                        stroke="var(--color-precipitation)"
+                        strokeWidth={3}
+                        radius={2}
+                      />
+                      <Bar
+                        dataKey="snowfall"
+                        fill="var(--color-snowfall)"
+                        yAxisId="snowfall"
+                        unit="cm"
+                        stroke="var(--color-snowfall)"
+                        strokeWidth={3}
+                        radius={2}
+                      />
+                      <ChartTooltip content={<CustomTooltip />} />
+                      <ChartLegend content={<ChartLegendContent />} />
+                    </ComposedChart>
+                  </ChartContainer>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
       </div>
+    </div>
+  );
+}
+
+// Modifier le composant App principal
+function App() {
+  return (
+    <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
+      <AppContent />
     </ThemeProvider>
   );
 }
